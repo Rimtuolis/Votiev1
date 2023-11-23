@@ -57,7 +57,7 @@ namespace VotieAPI.Services
             return createdDistrictResponse;
         }
 
-        public async Task<IEnumerable<CreatedVoteResponse>> GetVotesForCandidate(int districtId, int candidateId)
+        public async Task<IEnumerable<CreatedVoteResponse>> GetVotesForCandidate(int districtId, string candidateId)
         {
             var votes = await _votieDbContext.Votes.Where(c => c.Candidate.Id == candidateId && c.Candidate.District.Id == districtId)
                 .Include(c => c.Candidate)

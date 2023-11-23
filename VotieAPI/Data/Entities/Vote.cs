@@ -1,4 +1,8 @@
-﻿namespace VotieAPI.Data.Entities
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using VotieAPI.Auth.Entity;
+
+namespace VotieAPI.Data.Entities
 {
     public class Vote
     {
@@ -7,5 +11,7 @@
 
         public Voter Voter { get; set; }
         public Candidate Candidate { get; set; }
+
     }
+
 }

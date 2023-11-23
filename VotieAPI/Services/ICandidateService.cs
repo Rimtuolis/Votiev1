@@ -8,8 +8,8 @@ namespace VotieAPI.Services
     {
         Task<CreatedCandidateResponse> CreateCandidate(CreateCandidateRequest request);
         Task<IEnumerable<CreatedCandidateResponse>> CandidateList();
-        Task<CreatedCandidateResponse> CandidateById(int id);
-        Task<CreatedCandidateResponse> UpdateCandidate(UpdateCandidateRequest request, int Id);
-        Task<bool> DeleteCandidate(int Id);
+        Task<CreatedCandidateResponse> CandidateById(string id);
+        Task<CreatedCandidateResponse> UpdateCandidate(UpdateCandidateRequest request, string Id);
+        Task<bool> DeleteCandidate(string Id);
     }
 }

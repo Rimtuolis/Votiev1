@@ -8,9 +8,9 @@ namespace VotieAPI.Services
     {
        Task<CreatedVoterResponse> CreateVoter(CreateVoterRequest createVoterRequest);
        Task<IEnumerable<CreatedVoterResponse>> VoterList();
-       Task<CreatedVoterResponse?> VoterById(int id);
-        Task<CreatedVoterResponse> UpdateVoter(CreateVoterRequest request, int voterId);
-        Task<CreatedVoterResponse> DeleteVoter (int voterId);  
+       Task<CreatedVoterResponse?> VoterById(string id);
+        Task<CreatedVoterResponse> UpdateVoter(CreateVoterRequest request, string voterId);
+        Task<CreatedVoterResponse> DeleteVoter (string voterId);  
 
     }
 }

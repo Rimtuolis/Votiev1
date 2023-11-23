@@ -20,7 +20,9 @@ namespace VotieAPI.Mappers
         {
             return new Vote()
             {
-                Date = DateTime.Now
+                Voter = new Voter() { },
+                Date = DateTime.Now,
+                Candidate = new Candidate() { }
             };
         }
         public static Vote UpdateMapToDbEntity(this UpdateCandidateRequest input)

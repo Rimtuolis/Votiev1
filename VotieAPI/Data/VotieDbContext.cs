@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using VotieAPI.Auth.Entity;
 using VotieAPI.Data.Entities;
 
 namespace VotieAPI.Data
 
 {
-    public class VotieDbContext : DbContext
+    public class VotieDbContext : IdentityDbContext<VotieUser>
     {
         public DbSet<Voter> Voters { get; set; }
         public DbSet<Vote> Votes { get; set; }
@@ -16,6 +18,21 @@ namespace VotieAPI.Data
         public VotieDbContext(DbContextOptions<VotieDbContext> options) : base(options)
         {
             
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Vote>()
+                .HasOne(v => v.Voter)
+                .WithMany()
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Vote>()
+                .HasOne(v => v.Candidate)
+                .WithMany()
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

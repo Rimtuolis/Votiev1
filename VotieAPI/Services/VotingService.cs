@@ -30,7 +30,7 @@ namespace VotieAPI.Services
             return voterToCreate.MapToApiResponse();
         }
         //Bool
-        public async Task<CreatedVoterResponse> DeleteVoter(int voterId)
+        public async Task<CreatedVoterResponse> DeleteVoter(string voterId)
         {
             var voter = await _votieDbContext.Voters.FirstOrDefaultAsync(o => o.Id == voterId);
             if (voter == null)
@@ -40,7 +40,7 @@ namespace VotieAPI.Services
             return voter.MapToApiResponse();
         }
 
-        public async Task<CreatedVoterResponse> UpdateVoter([Validate] CreateVoterRequest request, int voterId)
+        public async Task<CreatedVoterResponse> UpdateVoter([Validate] CreateVoterRequest request, string voterId)
         {
             var existingVoter= await _votieDbContext.Voters.FirstOrDefaultAsync(voter => voter.Id == voterId);
             if (existingVoter is null)
@@ -54,7 +54,7 @@ namespace VotieAPI.Services
             return existingVoter.MapToApiResponse();
         }
 
-        public async Task<CreatedVoterResponse?> VoterById(int id)
+        public async Task<CreatedVoterResponse?> VoterById(string id)
         {
             var voter = await _votieDbContext.Voters.FirstOrDefaultAsync(o => o.Id == id);
             if (voter == null)

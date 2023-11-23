@@ -14,7 +14,7 @@ namespace VotieAPI.EndPoints
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await votingService.VoterList();
             });
-            voterGroup.MapGet("voters/{voterid}", async (int voterId, IVotingService votingService) =>
+            voterGroup.MapGet("voters/{voterid}", async (string voterId, IVotingService votingService) =>
             {
                 var voter = await votingService.VoterById(voterId);
                 if (voter == null)
@@ -37,7 +37,7 @@ namespace VotieAPI.EndPoints
                 }
 
             });
-            voterGroup.MapPut("voters/{voterid}", async (int voterId, IVotingService votingService, [Validate] CreateVoterRequest request) =>
+            voterGroup.MapPut("voters/{voterid}", async (string voterId, IVotingService votingService, [Validate] CreateVoterRequest request) =>
             {
                 try
                 {
@@ -54,7 +54,7 @@ namespace VotieAPI.EndPoints
             {
 
             });
-            voterGroup.MapDelete("voters/{voterid}", async (int voterId, IVotingService votingService) =>
+            voterGroup.MapDelete("voters/{voterid}", async (string voterId, IVotingService votingService) =>
             {
                 var voter = await votingService.DeleteVoter(voterId);
                 if (voter == null)

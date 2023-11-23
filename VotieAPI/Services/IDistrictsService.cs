@@ -10,6 +10,6 @@ namespace VotieAPI.Services
         Task<CreatedDistrictResponse> DistrictById(int id);
         Task<CreatedDistrictResponse> UpdateDistrict(CreateDistrictRequest request, int Id);
         Task<CreatedDistrictResponse> DeleteDistrict(int Id);
-        Task<IEnumerable<CreatedVoteResponse>> GetVotesForCandidate(int districtId, int candidateId);
+        Task<IEnumerable<CreatedVoteResponse>> GetVotesForCandidate(int districtId, string candidateId);
     }
 }

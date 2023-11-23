@@ -1,4 +1,6 @@
-﻿using O9d.AspNet.FluentValidation;
+﻿using Microsoft.AspNetCore.Authorization;
+using O9d.AspNet.FluentValidation;
+using VotieAPI.Auth.Entity;
 using VotieAPI.Requests;
 using VotieAPI.Responses;
 using VotieAPI.Services;
@@ -9,17 +11,17 @@ namespace VotieAPI.EndPoints
     {
         public static void AddDistrictsEndPoints(RouteGroupBuilder group)
         {
-            group.MapGet("districts", async (IDistrictsService districtsService, CancellationToken cancellationToken) =>
+            group.MapGet("districts", [Authorize(Roles = VotieRoles.Admin)] async (IDistrictsService districtsService, CancellationToken cancellationToken) =>
             {
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await districtsService.DistrictList();
             });
-            group.MapGet("districts/{districtId}/candidates/{candidateId}/votes", async (int districtId, int candidateId, IDistrictsService districtsService, CancellationToken cancellationToken) =>
+            group.MapGet("districts/{districtId}/candidates/{candidateId}/votes", async (int districtId, string candidateId, IDistrictsService districtsService, CancellationToken cancellationToken) =>
             {
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await districtsService.GetVotesForCandidate(districtId, candidateId);
             });
-            group.MapGet("districts/{districtId}", async (int districtId, IDistrictsService districtsService) =>
+            group.MapGet("districts/{districtId}", [Authorize(Roles = VotieRoles.Admin)] async (int districtId, IDistrictsService districtsService) =>
             {
                 var district = await districtsService.DistrictById(districtId);
                 if (district == null)
@@ -28,7 +30,7 @@ namespace VotieAPI.EndPoints
                 }
                 return Results.Ok(district);
             });
-            group.MapPost("districts", async ([Validate] CreateDistrictRequest request, IDistrictsService districtsService) =>
+            group.MapPost("districts", [Authorize(Roles = VotieRoles.Admin)] async ([Validate] CreateDistrictRequest request, IDistrictsService districtsService) =>
             {
                 try
                 {
@@ -42,7 +44,7 @@ namespace VotieAPI.EndPoints
                 }
 
             });
-            group.MapPut("districts/{districtId}", async (int districtId, IDistrictsService districtsService, [Validate] CreateDistrictRequest request) =>
+            group.MapPut("districts/{districtId}", [Authorize(Roles = VotieRoles.Admin)] async (int districtId, IDistrictsService districtsService, [Validate] CreateDistrictRequest request) =>
             {
                 try
                 {
@@ -59,7 +61,7 @@ namespace VotieAPI.EndPoints
             {
 
             });
-            group.MapDelete("districts/{districtId}", async (int districtId, IDistrictsService districtsService) =>
+            group.MapDelete("districts/{districtId}", [Authorize(Roles = VotieRoles.Admin)] async (int districtId, IDistrictsService districtsService) =>
             {
                 var district = await districtsService.DeleteDistrict(districtId);
                 if (district == null)

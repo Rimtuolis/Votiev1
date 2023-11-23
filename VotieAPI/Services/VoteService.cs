@@ -1,6 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.JsonWebTokens;
 using O9d.AspNet.FluentValidation;
+using System.Security.Claims;
+using VotieAPI.Auth.Entity;
 using VotieAPI.Data;
+using VotieAPI.Data.Entities;
 using VotieAPI.Mappers;
 using VotieAPI.Requests;
 using VotieAPI.Responses;
@@ -16,7 +21,7 @@ namespace VotieAPI.Services
             votieDbContext.Database.EnsureCreated();
             _votieDbContext = votieDbContext;
         }
-        public async Task<CreatedVoteResponse> CreateVote([Validate] CreateVoteRequest request)
+        public async Task<CreatedVoteResponse> CreateVote([Validate] CreateVoteRequest request,HttpContext httpContext, UserManager<VotieUser> userManager)
         {
             var voteToCreate = request.MapToDbEntity();
             //if (await _votieDbContext.Votes.CountAsync() > 0)
@@ -27,8 +32,12 @@ namespace VotieAPI.Services
             //        throw new Exception("Candidate cannot be created, because it already registered");
             //    }
             //}
-            voteToCreate.Voter = await _votieDbContext.Voters.FirstAsync(d => d.Id == request.Voter);
-            voteToCreate.Candidate = await _votieDbContext.Candidates.FirstAsync(d => d.Id == request.Candidate);
+
+            voteToCreate.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            //voteToCreate.Candidate = await _votieDbContext.Candidates.FirstAsync(d => d.Id == request.Candidate);
+            var temp = await userManager.FindByIdAsync(request.Candidate);
+            voteToCreate.Candidate.Id = temp.Id;
             await _votieDbContext.AddAsync(voteToCreate);
             await _votieDbContext.SaveChangesAsync();
             return voteToCreate.MapToApiResponse();
@@ -44,7 +53,7 @@ namespace VotieAPI.Services
             return true;
         }
 
-        public async Task<CreatedVoteResponse> UpdateVote(CreateVoteRequest request, int Id)
+        public async Task<CreatedVoteResponse> UpdateVote(CreateVoteRequest request, int Id, HttpContext httpContext)
         {
             var existingVote = await _votieDbContext.Votes
                                                 .Include(v => v.Voter)
@@ -55,7 +64,7 @@ namespace VotieAPI.Services
             {
                 throw new Exception("Vote does not exist");
             }
-            existingVote.Voter.Id = request.Voter;
+            existingVote.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
             existingVote.Candidate.Id = request.Candidate;
             _votieDbContext.Update(existingVote);
             await _votieDbContext.SaveChangesAsync();

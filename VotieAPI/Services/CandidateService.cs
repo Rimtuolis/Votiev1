@@ -17,7 +17,7 @@ namespace VotieAPI.Services
             votieDbContext.Database.EnsureCreated();
             _votieDbContext = votieDbContext;
         }
-        public async Task<CreatedCandidateResponse> CandidateById(int id)
+        public async Task<CreatedCandidateResponse> CandidateById(string id)
         {
             var candidate = await _votieDbContext.Candidates.Include(x => x.District).FirstOrDefaultAsync(c => c.Id==id);
             if (candidate == null)
@@ -49,7 +49,7 @@ namespace VotieAPI.Services
             return candidateToCreate.MapToApiResponse();
         }
 
-        public async Task<bool> DeleteCandidate(int Id)
+        public async Task<bool> DeleteCandidate(string Id)
         {
             var candidate = await _votieDbContext.Candidates.FirstOrDefaultAsync(o => o.Id == Id);
             if (candidate == null)
@@ -59,7 +59,7 @@ namespace VotieAPI.Services
             return true;
         }
 
-        public async Task<CreatedCandidateResponse> UpdateCandidate(UpdateCandidateRequest request, int Id)
+        public async Task<CreatedCandidateResponse> UpdateCandidate(UpdateCandidateRequest request, string Id)
         {
             var existingCandidate = await _votieDbContext.Candidates.Include(x => x.District).FirstOrDefaultAsync(c => c.Id == Id);
             if (existingCandidate is null)

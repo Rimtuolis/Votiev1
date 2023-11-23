@@ -1,7 +1,16 @@
-﻿using O9d.AspNet.FluentValidation;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.JsonWebTokens;
+using O9d.AspNet.FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.JsonWebTokens;
+using System.Security.Claims;
+using System.Data;
+using VotieAPI.Auth.Entity;
 using VotieAPI.Requests;
 using VotieAPI.Responses;
 using VotieAPI.Services;
+using VotieAPI.Data;
 
 namespace VotieAPI.EndPoints
 {
@@ -9,7 +18,7 @@ namespace VotieAPI.EndPoints
     {
         public static void AddVotesEndPoints(RouteGroupBuilder group)
         {
-            group.MapGet("votes", async (IVoteService voteService, CancellationToken cancellationToken) =>
+            group.MapGet("votes", [Authorize(Roles = VotieRoles.Admin)] async (IVoteService voteService, CancellationToken cancellationToken) =>
             {
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await voteService.VoteList();
@@ -23,11 +32,11 @@ namespace VotieAPI.EndPoints
                 }
                 return Results.Ok(voter);
             });
-            group.MapPost("votes", async ([Validate] CreateVoteRequest request, IVoteService voteService) =>
+            group.MapPost("votes",[Authorize(Roles = VotieRoles.Voter)] async ([Validate] CreateVoteRequest request, IVoteService voteService, HttpContext httpContext, UserManager<VotieUser> userManager) =>
             {
                 try
                 {
-                    var createdVote = await voteService.CreateVote(request);
+                    var createdVote = await voteService.CreateVote(request, httpContext, userManager);
 
                     return Results.Created<CreatedVoteResponse>($"votes/{createdVote.Id}", createdVote);
                 }
@@ -37,13 +46,25 @@ namespace VotieAPI.EndPoints
                 }
 
             });
-            group.MapPut("votes/{voteId}", async (int voteId, IVoteService voteService, [Validate] CreateVoteRequest request) =>
+            group.MapPut("votes/{voteId}", [Authorize(Roles = VotieRoles.Voter)] async (int voteId, IVoteService voteService, [Validate] CreateVoteRequest request,HttpContext httpContext,VotieDbContext dbContext) =>
             {
                 try
                 {
-                    var createdVote = await voteService.UpdateVote(request, voteId);
+                    var vote = await dbContext.Votes.FirstOrDefaultAsync(x => x.Id == voteId);
+                    if (vote == null)
+                    {
+                        Results.NotFound();
+                    }
+                    if (!httpContext.User.IsInRole(VotieRoles.Admin) && httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub) != vote.Voter.Id)
+                    {
+                        Results.NotFound();
+                    }
+                    vote.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                    vote.Candidate.Id = request.Candidate;
+                    dbContext.Update(vote);
+                    await dbContext.SaveChangesAsync();
 
-                    return Results.Ok(createdVote);
+                    return Results.Ok(vote);
                 }
                 catch (Exception ex)
                 {
