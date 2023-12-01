@@ -9,8 +9,8 @@ namespace VotieAPI.Data.Entities
         public int Id { get; set; }
         public DateTime? Date { get; set; } 
 
-        public Voter Voter { get; set; }
-        public Candidate Candidate { get; set; }
+        public string VoterId { get; set; }
+        public string CandidateId { get; set; }
 
     }
 

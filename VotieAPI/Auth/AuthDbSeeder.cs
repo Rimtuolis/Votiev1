@@ -45,7 +45,7 @@ namespace VotieAPI.Auth
                 var createAdmindUserResult = await _userManager.CreateAsync(newAdminUser, "Nepaimsi326.");
                 if (createAdmindUserResult.Succeeded)
                 {
-                    await _userManager.AddToRolesAsync(newAdminUser, VotieRoles.All);
+                    await _userManager.AddToRoleAsync(newAdminUser, VotieRoles.Admin);
                 }
             }
         }

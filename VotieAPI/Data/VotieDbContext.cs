@@ -19,20 +19,20 @@ namespace VotieAPI.Data
         {
             
         }
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+        //    base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Vote>()
-                .HasOne(v => v.Voter)
-                .WithMany()
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Vote>()
-                .HasOne(v => v.Candidate)
-                .WithMany()
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
-        }
+        //    modelBuilder.Entity<Vote>()
+        //        .HasOne(v => v.Voter)
+        //        .WithMany()
+        //        .IsRequired()
+        //        .OnDelete(DeleteBehavior.Restrict);
+        //    modelBuilder.Entity<Vote>()
+        //        .HasOne(v => v.Candidate)
+        //        .WithMany()
+        //        .IsRequired()
+        //        .OnDelete(DeleteBehavior.Restrict);
+        //}
     }
 }

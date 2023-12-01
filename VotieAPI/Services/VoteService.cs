@@ -33,11 +33,10 @@ namespace VotieAPI.Services
             //    }
             //}
 
-            voteToCreate.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
+            voteToCreate.VoterId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
             //voteToCreate.Candidate = await _votieDbContext.Candidates.FirstAsync(d => d.Id == request.Candidate);
-            var temp = await userManager.FindByIdAsync(request.Candidate);
-            voteToCreate.Candidate.Id = temp.Id;
+            //var temp = await userManager.FindByIdAsync(request.Candidate);
+            voteToCreate.CandidateId = request.Candidate;
             await _votieDbContext.AddAsync(voteToCreate);
             await _votieDbContext.SaveChangesAsync();
             return voteToCreate.MapToApiResponse();
@@ -56,16 +55,13 @@ namespace VotieAPI.Services
         public async Task<CreatedVoteResponse> UpdateVote(CreateVoteRequest request, int Id, HttpContext httpContext)
         {
             var existingVote = await _votieDbContext.Votes
-                                                .Include(v => v.Voter)
-                                                .Include(c => c.Candidate)
-                                                .ThenInclude(d => d.District)
                                                 .FirstOrDefaultAsync(c => c.Id == Id);
             if (existingVote is null)
             {
                 throw new Exception("Vote does not exist");
             }
-            existingVote.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-            existingVote.Candidate.Id = request.Candidate;
+            existingVote.VoterId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            existingVote.CandidateId = request.Candidate;
             _votieDbContext.Update(existingVote);
             await _votieDbContext.SaveChangesAsync();
             return existingVote.MapToApiResponse();
@@ -78,8 +74,6 @@ namespace VotieAPI.Services
             //                                    .ThenInclude("Candidates.Name")
             //                                    .FirstOrDefaultAsync(c => c.Id == id);
             var vote = await _votieDbContext.Votes
-                                                .Include(c => c.Candidate)
-                                                .Include(v => v.Voter)
                                                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (vote == null)
@@ -90,8 +84,6 @@ namespace VotieAPI.Services
         public async Task<IEnumerable<CreatedVoteResponse>> VoteList()
         {
             var votes = await _votieDbContext.Votes
-                                                .Include(c => c.Candidate)
-                                                .Include(v => v.Voter)
                                                 .ToListAsync();
             return votes.Select(candidate => candidate.MapToApiResponse());
         }

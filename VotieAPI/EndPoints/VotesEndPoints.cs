@@ -23,7 +23,7 @@ namespace VotieAPI.EndPoints
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await voteService.VoteList();
             });
-            group.MapGet("votes/{voteId}", async (int voteId, IVoteService voteService) =>
+            group.MapGet("votes/{voteId}", [Authorize(Roles = VotieRoles.Admin)] async (int voteId, IVoteService voteService) =>
             {
                 var voter = await voteService.VoteById(voteId);
                 if (voter == null)
@@ -53,14 +53,14 @@ namespace VotieAPI.EndPoints
                     var vote = await dbContext.Votes.FirstOrDefaultAsync(x => x.Id == voteId);
                     if (vote == null)
                     {
-                        Results.NotFound();
+                        return Results.NotFound();
                     }
-                    if (!httpContext.User.IsInRole(VotieRoles.Admin) && httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub) != vote.Voter.Id)
+                    if (!httpContext.User.IsInRole(VotieRoles.Admin) && httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub) != vote.VoterId)
                     {
-                        Results.NotFound();
+                        return Results.NotFound();
                     }
-                    vote.Voter.Id = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-                    vote.Candidate.Id = request.Candidate;
+                    vote.VoterId = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                    vote.CandidateId = request.Candidate;
                     dbContext.Update(vote);
                     await dbContext.SaveChangesAsync();
 
@@ -71,7 +71,7 @@ namespace VotieAPI.EndPoints
                     return Results.BadRequest(ex.Message);
                 }
             });
-            group.MapDelete("votes/{voteId}", async (int voteId, IVoteService voteService) =>
+            group.MapDelete("votes/{voteId}", [Authorize(Roles = VotieRoles.Admin)] async (int voteId, IVoteService voteService) =>
             {
                 var isDeleted = await voteService.DeleteVote(voteId);
                 if (!isDeleted)

@@ -24,8 +24,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddDbContext<VotieDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("VoteDb")!)
-);
+{
+    options.EnableSensitiveDataLogging();
+    options.UseSqlServer(builder.Configuration.GetConnectionString("VoteDb")!);
+}
+); 
+
 builder.Services.AddTransient<IVotingService, VotingService>();
 builder.Services.AddTransient<IDistrictsService, DistrictsService>();
 builder.Services.AddTransient<ICandidateService, CandidateService>();

@@ -10,8 +10,8 @@ namespace VotieAPI.Mappers
         {
             return new CreatedVoteResponse()
             {
-                Candidate = vote.Candidate.Name,
-                Voter = vote.Voter.Name,
+                Candidate = vote.CandidateId,
+                Voter = vote.VoterId,
                 Date = vote.Date.Value,
                 Id = vote.Id
             };
@@ -20,9 +20,9 @@ namespace VotieAPI.Mappers
         {
             return new Vote()
             {
-                Voter = new Voter() { },
+                VoterId = "",
                 Date = DateTime.Now,
-                Candidate = new Candidate() { }
+                CandidateId = ""
             };
         }
         public static Vote UpdateMapToDbEntity(this UpdateCandidateRequest input)

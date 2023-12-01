@@ -21,7 +21,7 @@
     },
     "resourceName": {
       "type": "string",
-      "defaultValue": "VotieAPI2023",
+      "defaultValue": "VotieAPI",
       "metadata": {
         "description": "Name of the main resource to be created by this template."
       }
