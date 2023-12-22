@@ -1,0 +1,394 @@
+﻿@page "/elections"
+@using Votie.Shared
+@using Votie.Client.Services;
+@inject Utilities.ILocalStorage LocalStorage
+@inject HttpService HttpService
+@inject NavigationManager nav
+<PageTitle>Elections</PageTitle>
+<h3>Elections</h3>
+
+@if (mainLayout.LoggedIn)
+{
+    @if (elections == null || elections.Count == 0)
+    {
+        <div class="loader" style="margin-top: 20%">
+        </div>
+        @if (mainLayout.AdminRole)
+        {
+            <button class="btn btn-primary" title="Add" @onclick="OpenAdd">Add Election</button>
+        }
+    }
+    else
+    {
+        <div class="table-responsive-md">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>StartDate</th>
+                        <th>EndDate</th>
+                        <th>District</th>
+                        <th>Vote</th>
+                        @if (mainLayout.AdminRole)
+                        {
+                            <th>Edit</th>
+                            <th>Delete</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var election in elections)
+                    {
+                        <tr>
+                            <td>@election.Name</td>
+                            <td>@(election.StartDate.HasValue ? election.StartDate.Value.ToString("MM/dd/yyyy") : "-")</td>
+                            <td>@(election.EndDate.HasValue ? election.EndDate.Value.ToString("MM/dd/yyyy") : "-")</td>
+                            <td>@election.District</td>
+                            @if (election.EndDate > DateTime.UtcNow)
+                            {
+                                <td>
+                                    <button type="button" class="btn btn-primary" @onclick="@OpenVote">
+                                        <span class="bi bi-trash"></span>&nbsp;Vote
+                                    </button>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>Ended</td>
+                            }
+                            @if (mainLayout.AdminRole)
+                            {
+                                <td>
+                                    <button type="button" class="btn btn-primary" @onclick="@(() => EditElection(election.Id))">
+                                        <span class="bi bi-trash"></span>&nbsp;Edit
+                                    </button>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-danger" @onclick="@(() => DeleteElection(election.Id))">
+                                        <span class="bi bi-trash"></span>&nbsp;Delete
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (mainLayout.AdminRole)
+        {
+            <button class="btn btn-primary" title="Add" @onclick="OpenAdd">Add Election</button>
+        }
+    }
+    @if (districts == null || districts.Count == 0)
+    {
+    }
+    else
+    {
+        <div class="modal-backdrop fade @(showAdd ? "show" : "") @(displayAdd ? "" : "d-none")"></div>
+        <div class="modal fade @(showAdd ? "show" : "")  @(displayAdd ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Election form</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CancelAdd">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form @onsubmit="AddElection">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" placeholder="" autocomplete="off" required @bind-value="newElection.Name" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="startAdd" class="form-label">StartDate</label>
+                                <input type="datetime-local" class="form-control" id="startAdd" required @bind-value="newElection.StartDate" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="endAdd" class="form-label">EndDate</label>
+                                <input type="datetime-local" class="form-control" id="endAdd" required @bind-value="newElection.EndDate" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="districtAdd" class="form-label">District</label>
+                                <select class="form-select" id="districtAdd" @bind="newElection.District">
+                                    <option value="">Select a District</option>
+                                    @foreach (var district in districts)
+                                    {
+                                        <option value="@district.Id">@district.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(addMessage) ? "d-none" : "")" role="alert">@addMessage</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" disabled="@disableBtnAdd">Create</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CancelAdd">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-backdrop fade @(showEdit ? "show" : "") @(displayEdit ? "" : "d-none")"></div>
+        <div class="modal fade @(showEdit ? "show" : "")  @(displayEdit ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Election form</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CancelEdit">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form @onsubmit="SubmitElection">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" placeholder="@editElection.Name" autocomplete="off" required @bind-value="editElection.Name" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="startAdd" class="form-label">StartDate</label>
+                                <input type="datetime-local" class="form-control" id="startAdd" placeholder="@editElection.StartDate" required @bind-value="editElection.StartDate" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="endAdd" class="form-label">EndDate</label>
+                                <input type="datetime-local" class="form-control" id="endAdd" placeholder="@editElection.EndDate" required @bind-value="editElection.EndDate" @onkeypress="() => addMessage = null" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="districtAdd" class="form-label">District</label>
+                                <select class="form-select" id="districtAdd" placeholder="@editingDistrictName" @bind="editElection.District">
+                                    @foreach (var district in districts)
+                                    {
+                                        <option value="@district.Id">@district.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(editMessage) ? "d-none" : "")" role="alert">@editMessage</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" disabled="@disableBtnEdit">Edit</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CancelEdit">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    if (candidates == null || candidates.Count == 0)
+    {
+
+    }
+    else
+    {
+        <div class="modal-backdrop fade @(showVote ? "show" : "") @(displayVote ? "" : "d-none")"></div>
+        <div class="modal fade @(showVote ? "show" : "")  @(displayVote ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Vote form</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CancelVote">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form @onsubmit="VoteForCandidate">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="voteCandidate" class="form-label">Candidate</label>
+                                <select class="form-select" id="voteCandidate" @bind="newVote.Candidate">
+                                    <option value="">Select a Candidate</option>
+                                    @foreach (var candidate in candidates)
+                                    {
+                                        <option value="@candidate.Id">@candidate.Name @candidate.LastName </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(addMessage) ? "d-none" : "")" role="alert">@addMessage</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" disabled="@disableBtnAdd">Create</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CancelAdd">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-danger" role="alert">Please Login for access...</div>
+    <button type="submit" class="btn btn-success" @onclick="mainLayout.OpenLogin">Login</button>
+}
+@code {
+    [CascadingParameter]
+    public MainLayout mainLayout { get; set; }
+    private HttpClient _httpClient;
+    private bool showAdd, displayAdd, disableBtnAdd, showEdit, displayEdit, disableBtnEdit, showVote, displayVote, disableBtnVote;
+    private string addMessage, editMessage, voteMessage, alertType;
+    private List<ElectionResponse> elections;
+    private List<District> districts;
+    private List<CandidateResponse> candidates;
+    ElectionRequest newElection = new ElectionRequest();
+    ElectionRequest editElection = new ElectionRequest();
+    VoteRequest newVote = new VoteRequest();
+    private int editingElectionId;
+    private string editingDistrictName;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpService.GetHttpClient();
+        await RefreshElectionList();
+        districts = await _httpClient.GetFromJsonAsync<List<District>>("https://votieapi.azurewebsites.net/api/districts");
+        candidates = await _httpClient.GetFromJsonAsync<List<CandidateResponse>>("https://votieapi.azurewebsites.net/api/votes/candidates");
+
+    }
+    public async Task RefreshElectionList()
+    {
+        try
+        {
+            elections = await _httpClient.GetFromJsonAsync<List<ElectionResponse>>("https://votieapi.azurewebsites.net/api/elections");
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private async Task AddElection()
+    {
+        if (!string.IsNullOrEmpty(newElection.Name) && !string.IsNullOrEmpty(newElection.StartDate.ToString()) && !string.IsNullOrEmpty(newElection.EndDate.ToString()) && !string.IsNullOrEmpty(newElection.District.ToString()))
+        {
+            using (var msg = await _httpClient.PostAsJsonAsync<ElectionRequest>("https://votieapi.azurewebsites.net/api/elections", newElection, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+                    await RefreshElectionList();
+                    addMessage = "Elections added successfully";
+                    alertType = "success";
+                    await CancelAdd();
+                }
+                else
+                {
+                    addMessage = "Form was not correct";
+                    alertType = "danger";
+                }
+            }
+        }
+    }
+
+    public async Task DeleteElection(int electionId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"https://votieapi.azurewebsites.net/api/elections/{electionId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshElectionList();
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private async void EditElection(int id)
+    {
+        editingElectionId = id;
+        ElectionResponse temp;
+        District tempD;
+        temp = elections.FirstOrDefault(d => d.Id == id);
+        editElection.Name = temp.Name;
+        editElection.StartDate = temp.StartDate;
+        editElection.EndDate = temp.EndDate;
+        tempD = districts.FirstOrDefault(d => d.Name == temp.District);
+        editElection.District = tempD.Id;
+        editingDistrictName = tempD.Name;
+        await OpenEdit();
+        StateHasChanged();
+    }
+
+    private async Task SubmitElection()
+    {
+        if (!string.IsNullOrEmpty(editElection.Name) && !string.IsNullOrEmpty(editElection.StartDate.ToString()) && !string.IsNullOrEmpty(editElection.EndDate.ToString()) && !string.IsNullOrEmpty(editElection.District.ToString()))
+        {
+            using (var msg = await _httpClient.PutAsJsonAsync($"https://votieapi.azurewebsites.net/api/elections/{editingElectionId}", editElection, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+                    await RefreshElectionList();
+                    addMessage = "Election edited successfully";
+                    alertType = "success";
+                    await CancelEdit();
+                }
+                else
+                {
+                    addMessage = "Form was not correct";
+                    alertType = "danger";
+                }
+            }
+        }
+    }
+    private async Task VoteForCandidate()
+    {
+        if (!string.IsNullOrEmpty(newVote.Candidate))
+        {
+            using (var msg = await _httpClient.PostAsJsonAsync($"https://votieapi.azurewebsites.net/api/votes", newVote, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+                    await RefreshElectionList();
+                    addMessage = "Election edited successfully";
+                    alertType = "success";
+                    await CancelVote();
+                }
+                else
+                {
+                    addMessage = "Form was not correct";
+                    alertType = "danger";
+                }
+            }
+        }
+    }
+    public async Task OpenAdd()
+    {
+        newElection.Clear();
+        displayAdd = true;
+        await Task.Delay(100);
+        showAdd = true;
+    }
+    public async Task OpenEdit()
+    {
+        displayEdit = true;
+        await Task.Delay(100);
+        showEdit = true;
+    }
+    public async Task OpenVote()
+    {
+        newVote.Clear();
+        displayVote = true;
+        await Task.Delay(100);
+        showVote = true;
+    }
+    private async Task CancelAdd()
+    {
+        addMessage = null;
+        showAdd = false;
+        await Task.Delay(200);
+        displayAdd = false;
+    }
+    private async Task CancelEdit()
+    {
+        editMessage = null;
+        showEdit = false;
+        await Task.Delay(200);
+        displayEdit = false;
+    }
+    private async Task CancelVote()
+    {
+        voteMessage = null;
+        showVote = false;
+        await Task.Delay(200);
+        displayVote = false;
+    }
+}

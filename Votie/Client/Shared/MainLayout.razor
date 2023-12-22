@@ -1,0 +1,241 @@
+﻿@using System.Text.Json;
+@using Microsoft.IdentityModel.Tokens;
+@using System.IdentityModel.Tokens.Jwt;
+@using System.Security.Claims;
+@using Votie.Client.Services;
+@using Votie.Shared;
+@inherits LayoutComponentBase
+@inject Utilities.ILocalStorage LocalStorage
+@inject NavigationManager nav
+@inject HttpClient Http
+@inject HttpService HttpService
+@* THIS ALLOWS IT TO BE A CASCADING PARAMETER *@
+
+<CascadingValue Value="this">
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <div class="main w-100">
+            <MainHeader />
+            <div class="top-row px-4">
+                <div style="padding-left: 0px; padding-right: 0px;">
+                    @if (LoggedIn)
+                    {
+                        <button class="btn btn-sm btn-danger" title="Logout" @onclick="Logout"><span class="oi oi-account-logout"></span></button>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-primary text-white" title="Register" href="/register"><span class="oi oi-pencil"></span></a>
+                        <button class="btn btn-sm btn-success" title="Login" @onclick="OpenLogin"><span class="oi oi-account-login"></span></button>
+                    }
+                </div>
+            </div>
+            <div class="content px-4">
+                @Body
+            </div>
+            <MainFooter />
+        </div>
+    </div>
+</CascadingValue>
+
+
+<div class="modal-backdrop fade @(show ? "show" : "") @(display ? "" : "d-none")"></div>
+<div class="modal fade @(show ? "show" : "")  @(display ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login Form</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="Cancel">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form @onsubmit="SubmitLogonForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" placeholder="" autocomplete="off" required @bind-value="log.UserName" @onkeypress="() => loginMessage = null" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" required @bind-value="log.Password" @onkeypress="() => loginMessage = null" />
+                    </div>
+                    <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(loginMessage) ? "d-none" : "")" role="alert">@loginMessage</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success" disabled="@disableBtn">Login</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="Cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@code {
+    private HttpClient _httpClient;
+    private bool show, display, disableBtn;
+    LoginAccount log = new LoginAccount();
+    private string loginMessage, accessJWT, refreshJWT, userEmail, userName;
+    bool loggedIn;
+    private bool IsAdmin;
+    private string roles;
+
+    [Parameter]
+    public bool LoggedIn
+    {
+        get { return loggedIn; }
+        set { } // NOTE: don't allow this parameter to be set
+    }
+    [Parameter]
+    public bool AdminRole
+    {
+        get { return IsAdmin; }
+        set { } // NOTE: don't allow this parameter to be set
+    }
+    [Parameter]
+
+    public string JWT
+    {
+        get { return accessJWT; }
+        set { } // NOTE: don't allow this parameter to be set
+    }
+
+    [Parameter]
+    public string UserEmail
+    {
+        get { return userEmail; }
+        set { } // NOTE: don't allow this parameter to be set
+    }
+
+    [Parameter]
+    public string UserName
+
+    { get => userName; set => userName = value; } // NOTE: don't allow this parameter to be set
+
+
+    public async Task OpenLogin()
+    {
+        log.Clear();
+        display = true;
+        await Task.Delay(100);
+        show = true;
+    }
+
+    public async Task Logout()
+    {
+        userEmail = userName = accessJWT = null;
+        HttpService.ClearHeader();
+        log.Clear();
+        loggedIn = false;
+        await LocalStorage.RemoveAsync("accessToken");
+        await LocalStorage.RemoveAsync("refreshToken");
+    }
+
+    private async Task<bool> SubmitLogonForm()
+    {
+        if (!string.IsNullOrEmpty(log.UserName) && !string.IsNullOrEmpty(log.Password))
+        {
+            disableBtn = true;
+            using (var msg = await Http.PostAsJsonAsync<LoginAccount>("https://votieapi.azurewebsites.net/api/login", log, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+
+                    LoginResult result = await msg.Content.ReadFromJsonAsync<LoginResult>();
+                    if (!string.IsNullOrEmpty(result.accessToken))
+                    {
+
+                        await Cancel();
+                        loggedIn = true;
+                        accessJWT = result.accessToken;
+                        refreshJWT = result.refreshToken;
+                        userName = await DisplayClaims("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
+                        roles = await DisplayClaims("http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+                        if(roles == "Admin")
+                        {
+                            IsAdmin = true;
+                        }
+                        await LocalStorage.SaveStringAsync("accessToken", result.accessToken);
+                        await LocalStorage.SaveStringAsync("refreshToken", result.refreshToken);
+                        HttpService.SetHeader(accessJWT);
+
+                    }
+                    else
+                    {
+                        loginMessage = result.accessToken;
+                    }
+                }
+                disableBtn = false;
+            }
+        }
+        return false;
+    }
+
+    private async Task Cancel()
+    {
+        loginMessage = null;
+        show = false;
+        await Task.Delay(200);
+        display = false;
+    }
+    private List<Claim> ExtractClaimsFromToken()
+    {
+        var handler = new JwtSecurityTokenHandler();
+
+        if (accessJWT.Contains('.') && handler.CanReadToken(accessJWT))
+        {
+            var token = handler.ReadJwtToken(accessJWT);
+            return token.Claims.ToList();
+        }
+        return new List<Claim>();
+    }
+
+    private async Task<string> DisplayClaims(string type)
+    {
+        var claims = ExtractClaimsFromToken();
+
+        var userNameClaim = claims.FirstOrDefault(claim => claim.Type == type);
+        if (userNameClaim != null)
+        {
+            return userNameClaim.Value;
+
+        }
+        return null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        accessJWT = await LocalStorage.GetStringAsync("accessToken");
+        refreshJWT = await LocalStorage.GetStringAsync("refreshToken");
+        if (!string.IsNullOrEmpty(accessJWT))
+        {
+            string str = await DisplayClaims("exp");
+            var expirationTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(str)).DateTime;
+            if (expirationTime.AddHours(2) > DateTimeOffset.Now)
+            {
+                loggedIn = true;
+                userName = await DisplayClaims("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
+                HttpService.SetHeader(accessJWT);
+                roles = await DisplayClaims("http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+                if (roles == "Admin")
+                {
+                    IsAdmin = true;
+                }
+
+            }
+            else
+            {
+                loggedIn = false;
+            }
+
+        }
+        else
+        {
+            loggedIn = false;
+        }
+
+
+    }
+}

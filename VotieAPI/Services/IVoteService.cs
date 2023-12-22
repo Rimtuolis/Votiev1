@@ -12,5 +12,9 @@ namespace VotieAPI.Services
         Task<CreatedVoteResponse> VoteById(int id);
         Task<CreatedVoteResponse> UpdateVote(CreateVoteRequest request, int Id, HttpContext httpContext);
         Task<bool> DeleteVote(int Id);
+
+        Task<IEnumerable<CandidateResponse>> CandidateList(UserManager<VotieUser> userManager);
+
+        Task<IEnumerable<CreatedVoteResponse>> UserVoteList(string userId);
     }
 }

@@ -10,4 +10,10 @@ namespace VotieAPI.Responses
         public string Voter { get; set; }
         public string Candidate { get; set; }
     }
+    public class CandidateResponse
+    {
+        public string Id { get; set;}
+        public string Name { get; set; }
+        public string LastName { get; set; }
+    }
 }

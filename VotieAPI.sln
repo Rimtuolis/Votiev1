@@ -5,6 +5,10 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VotieAPI", "VotieAPI\VotieAPI.csproj", "{AA271F5E-4353-4904-833F-AFE545C3783F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Votie.Client", "Votie\Client\Votie.Client.csproj", "{63F75936-27F8-4B0E-BC19-82A9B4A69980}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Votie.Shared", "Votie\Shared\Votie.Shared.csproj", "{800BC0CF-31F4-41A5-BD7F-386DEA85FAC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{AA271F5E-4353-4904-833F-AFE545C3783F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA271F5E-4353-4904-833F-AFE545C3783F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA271F5E-4353-4904-833F-AFE545C3783F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63F75936-27F8-4B0E-BC19-82A9B4A69980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63F75936-27F8-4B0E-BC19-82A9B4A69980}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63F75936-27F8-4B0E-BC19-82A9B4A69980}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63F75936-27F8-4B0E-BC19-82A9B4A69980}.Release|Any CPU.Build.0 = Release|Any CPU
+		{800BC0CF-31F4-41A5-BD7F-386DEA85FAC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{800BC0CF-31F4-41A5-BD7F-386DEA85FAC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{800BC0CF-31F4-41A5-BD7F-386DEA85FAC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{800BC0CF-31F4-41A5-BD7F-386DEA85FAC0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

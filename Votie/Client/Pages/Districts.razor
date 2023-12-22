@@ -1,0 +1,253 @@
+﻿@page "/districts"
+@using Votie.Client.Services;
+@using Votie.Shared
+@inject Utilities.ILocalStorage LocalStorage
+@inject HttpService HttpService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Districts</PageTitle>
+<h3>Districts</h3>
+
+@if (mainLayout.LoggedIn)
+{
+    <div class="max-width-container">
+        <img src="https://ontheworldmap.com/lithuania/map-of-lithuania-max.jpg" class="responsive-image">
+    </div>
+    @if (districts == null || districts.Count == 0)
+    {
+        <p>No districts available.</p>
+        <button class="btn btn-primary" title="Add" @onclick="OpenAdd">Add District</button>
+
+    }
+    else
+    {
+        <div class="table-responsive-md">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Country</th>
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var district in districts)
+                    {
+                        <tr>
+                            <td>@district.Name</td>
+                            <td>@district.Region</td>
+                            <td>
+                                <button type="button" class="btn btn-primary" @onclick="@(() => EditRegion(district.Id))">
+                                    <span class="bi bi-trash"></span>&nbsp;Edit
+                                </button>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger" @onclick="@(() => DeleteRegion(district.Id))">
+                                    <span class="bi bi-trash"></span>&nbsp;Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-primary" title="Add" @onclick="OpenAdd">Add District</button>
+
+    }
+    <div class="modal-backdrop fade @(showAdd ? "show" : "") @(displayAdd ? "" : "d-none")"></div>
+    <div class="modal fade @(showAdd ? "show" : "")  @(displayAdd ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add District form</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CancelAdd">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form @onsubmit="AddDistrict">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" placeholder="" autocomplete="off" required @bind-value="newDistrict.Name" @onkeypress="() => addMessage = null" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="regionAdd" class="form-label">Region</label>
+                            <input type="text" class="form-control" id="regionAdd" required @bind-value="newDistrict.Region" @onkeypress="() => addMessage = null" />
+                        </div>
+                        <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(addMessage) ? "d-none" : "")" role="alert">@addMessage</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success" disabled="@disableBtnAdd">Create</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CancelAdd">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop fade @(showEdit ? "show" : "") @(displayEdit ? "" : "d-none")"></div>
+    <div class="modal fade @(showEdit ? "show" : "")  @(displayEdit ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Districts form</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CancelEdit">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form @onsubmit="SubmitDistrict">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nameEdit" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="nameEdit" placeholder="@editDistrict.Name" autocomplete="off" required @bind-value="editDistrict.Name" @onkeypress="() => editMessage = null" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="regionEdit" class="form-label">Region</label>
+                            <input type="text" class="form-control" id="regionEdit" placeholder="@editDistrict.Region" required @bind-value="editDistrict.Region" @onkeypress="() => editMessage = null" />
+                        </div>
+                        <div class="mb-3 alert alert-danger @(string.IsNullOrWhiteSpace(editMessage) ? "d-none" : "")" role="alert">@editMessage</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success" disabled="@disableBtnEdit">Edit</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CancelEdit">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger" role="alert">Please Login for access...</div>
+    <button type="submit" class="btn btn-success" @onclick="mainLayout.OpenLogin">Login</button>
+}
+
+@code {
+    [CascadingParameter]
+    public MainLayout mainLayout { get; set; }
+    private HttpClient _httpClient;
+    private bool showAdd, displayAdd, disableBtnAdd, showEdit, displayEdit, disableBtnEdit;
+    private string addMessage,editMessage, alertType;
+    private int editingDistrictId;
+    List<District> districts;
+    DistrictRequest newDistrict = new DistrictRequest();
+    DistrictRequest editDistrict = new DistrictRequest();
+    string accessJWT;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpService.GetHttpClient();
+        await RefreshDistrictsList();
+    }
+    public async Task RefreshDistrictsList()
+    {
+        try
+        {
+            districts = await _httpClient.GetFromJsonAsync<List<District>>("https://votieapi.azurewebsites.net/api/districts");
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private async Task AddDistrict()
+    {
+        if (!string.IsNullOrEmpty(newDistrict.Name) && !string.IsNullOrEmpty(newDistrict.Region))
+        {
+            using (var msg = await _httpClient.PostAsJsonAsync<DistrictRequest>("https://votieapi.azurewebsites.net/api/districts", newDistrict, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+                    await RefreshDistrictsList();
+                    addMessage = "District added successfully";
+                    alertType = "success";
+                    await CancelAdd();
+                }
+                else
+                {
+                    addMessage = "Form was not correct";
+                    alertType = "danger";
+                }
+            }
+        }
+    }
+
+    public async Task DeleteRegion(int regionId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"https://votieapi.azurewebsites.net/api/districts/{regionId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshDistrictsList();
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private async void EditRegion(int id)
+    {
+        editingDistrictId = id;
+        District temp;
+        temp = districts.FirstOrDefault(d => d.Id == id);
+        editDistrict.Name = temp.Name;
+        editDistrict.Region = temp.Region;
+        await OpenEdit();
+        StateHasChanged();
+    }
+
+    private async Task SubmitDistrict()
+    {
+        if (!string.IsNullOrEmpty(editDistrict.Name) && !string.IsNullOrEmpty(editDistrict.Region))
+        {
+            using (var msg = await _httpClient.PutAsJsonAsync($"https://votieapi.azurewebsites.net/api/districts/{editingDistrictId}", editDistrict, System.Threading.CancellationToken.None))
+            {
+                if (msg.IsSuccessStatusCode)
+                {
+                    await RefreshDistrictsList();
+                    addMessage = "District edited successfully";
+                    alertType = "success";
+                    await CancelEdit();
+                }
+                else
+                {
+                    addMessage = "Form was not correct";
+                    alertType = "danger";
+                }
+            }
+        }
+    }
+    public async Task OpenAdd()
+    {
+        newDistrict.Clear();
+        displayAdd = true;
+        await Task.Delay(100);
+        showAdd = true;
+    }
+    public async Task OpenEdit()
+    {
+        displayEdit = true;
+        await Task.Delay(100);
+        showEdit = true;
+    }
+    private async Task CancelAdd()
+    {
+        addMessage = null;
+        showAdd = false;
+        await Task.Delay(200);
+        displayAdd = false;
+    }
+    private async Task CancelEdit()
+    {
+        editMessage = null;
+        showEdit = false;
+        await Task.Delay(200);
+        displayEdit = false;
+    }
+}
+

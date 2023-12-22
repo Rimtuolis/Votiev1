@@ -1,0 +1,136 @@
+﻿@page "/votes"
+@using Votie.Client.Services;
+@using Votie.Shared
+@inject Utilities.ILocalStorage LocalStorage
+@inject HttpService HttpService
+
+<PageTitle>Votes</PageTitle>
+<h3>Votes</h3>
+
+@if (mainLayout.LoggedIn)
+{
+    @if ((votes == null || votes.Count == 0) && mainLayout.AdminRole)
+    {
+        <p>No votes available.</p>
+    }
+    else if (mainLayout.AdminRole)
+    {
+            <div class="table-responsive-md">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>VoterId</th>
+                            <th>CandidateId</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var vote in votes)
+                        {
+                            <tr>
+                                <td>
+                                    @(vote.Date.HasValue ? vote.Date.Value.ToString("MM/dd/yyyy") : "-")
+                                </td>
+                                <td>@vote.Voter</td>
+                                <td>@vote.Candidate</td>
+                                <td>
+                                    <button type="button" class="btn btn-danger" @onclick="@(() => DeleteVote(vote.Id))">
+                                        <span class="bi-trash"></span>&nbsp;Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+    }
+    @if ((userVotes == null || userVotes.Count == 0) && !mainLayout.AdminRole)
+    {
+        <p>No votes available.</p>  
+    }
+    else if (!mainLayout.AdminRole)
+    {
+        <div class="table-responsive-md">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>CandidateId</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vote in userVotes)
+                    {
+                        <tr>
+                            <td>
+                                @(vote.Date.HasValue ? vote.Date.Value.ToString("MM/dd/yyyy") : "-")
+                            </td>
+                            <td>@vote.Candidate</td>
+                            <td>
+                                <button type="button" class="btn btn-danger" @onclick="@(() => DeleteVote(vote.Id))">
+                                    <span class="bi-trash"></span>&nbsp;Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-danger" role="alert">Please Login for access...</div>
+    <button type="submit" class="btn btn-success" @onclick="mainLayout.OpenLogin">Login</button>
+}
+
+@code {
+    [CascadingParameter]
+    public MainLayout mainLayout { get; set; }
+    private HttpClient _httpClient;
+    List<Vote> votes;
+    List<Vote> userVotes;
+    string accessJWT;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpService.GetHttpClient();
+        await RefreshVotesList();
+    }
+    public async Task RefreshVotesList()
+    {
+        try
+        {
+            if (mainLayout.AdminRole)
+            {
+                votes = await _httpClient.GetFromJsonAsync<List<Vote>>("https://votieapi.azurewebsites.net/api/votes");
+            }
+            else
+            {
+                userVotes = await _httpClient.GetFromJsonAsync<List<Vote>>("https://votieapi.azurewebsites.net/api/votes/user");
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    public async Task DeleteVote(int voteId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"https://votieapi.azurewebsites.net/api/votes/{voteId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshVotesList();
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+}

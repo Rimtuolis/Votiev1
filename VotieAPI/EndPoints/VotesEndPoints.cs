@@ -11,6 +11,8 @@ using VotieAPI.Requests;
 using VotieAPI.Responses;
 using VotieAPI.Services;
 using VotieAPI.Data;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http;
 
 namespace VotieAPI.EndPoints
 {
@@ -22,6 +24,15 @@ namespace VotieAPI.EndPoints
             {
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await voteService.VoteList();
+            });
+            group.MapGet("votes/candidates", [Authorize(Roles = VotieRoles.Voter + "," + VotieRoles.Admin)] async (UserManager < VotieUser > userManager,IVoteService voteService, CancellationToken cancellationToken) =>
+            {
+
+                return await voteService.CandidateList(userManager);
+            });
+            group.MapGet("votes/user", [Authorize(Roles = VotieRoles.Voter + "," + VotieRoles.Admin)] async (UserManager<VotieUser> userManager, HttpContext httpContext, IVoteService voteService, CancellationToken cancellationToken) =>
+            {
+                return await voteService.UserVoteList(httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub));
             });
             group.MapGet("votes/{voteId}", [Authorize(Roles = VotieRoles.Admin)] async (int voteId, IVoteService voteService) =>
             {

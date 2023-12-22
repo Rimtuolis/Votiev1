@@ -1,0 +1,20 @@
+﻿.footer-links {
+    display: flex;
+    justify-content: flex-end;
+    list-style: none;
+}
+
+    .footer-links li {
+        margin-right: 10px; /* Adjust spacing between items */
+        position: relative;
+    }
+
+        .footer-links li:not(:last-child):after {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 1px;
+            background-color: #ccc; /* Change color as needed */
+            top: 0;
+            right: -5px; /* Adjust position of the vertical line */
+        }

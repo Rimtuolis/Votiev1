@@ -11,7 +11,7 @@ namespace VotieAPI.EndPoints
     {
         public static void AddDistrictsEndPoints(RouteGroupBuilder group)
         {
-            group.MapGet("districts", [Authorize(Roles = VotieRoles.Admin)] async (IDistrictsService districtsService, CancellationToken cancellationToken) =>
+            group.MapGet("districts", [Authorize(Roles = VotieRoles.Voter + "," + VotieRoles.Admin)] async (IDistrictsService districtsService, CancellationToken cancellationToken) =>
             {
                 //return (await dbContext.Voters.ToListAsync(cancellationToken)).Select(o => new VoterDto();
                 return await districtsService.DistrictList();

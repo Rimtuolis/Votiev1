@@ -21,6 +21,12 @@ namespace VotieAPI.Services
             votieDbContext.Database.EnsureCreated();
             _votieDbContext = votieDbContext;
         }
+
+        public async Task<IEnumerable<CandidateResponse>> CandidateList(UserManager<VotieUser> userManager)
+        {
+            var candidates = await userManager.GetUsersInRoleAsync("Candidate");
+            return candidates.Select(candidate => new CandidateResponse { Id = candidate.Id, Name = candidate.Name, LastName = candidate.LastName }).ToList();
+        }
         public async Task<CreatedVoteResponse> CreateVote([Validate] CreateVoteRequest request,HttpContext httpContext, UserManager<VotieUser> userManager)
         {
             var voteToCreate = request.MapToDbEntity();
@@ -84,6 +90,13 @@ namespace VotieAPI.Services
         public async Task<IEnumerable<CreatedVoteResponse>> VoteList()
         {
             var votes = await _votieDbContext.Votes
+                                                .ToListAsync();
+            return votes.Select(candidate => candidate.MapToApiResponse());
+        }
+
+        public async Task<IEnumerable<CreatedVoteResponse>> UserVoteList(string userId)
+        {
+            var votes = await _votieDbContext.Votes.Where(x=> x.VoterId == userId)
                                                 .ToListAsync();
             return votes.Select(candidate => candidate.MapToApiResponse());
         }
