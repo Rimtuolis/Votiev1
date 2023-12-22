@@ -41,4 +41,5 @@ Sistemos sudedamosios dalys:
 
 Sistemos talpinimui yra naudojamas Azure serveris. Kiekviena sistemos dalis yra diegiama tame pačiame serveryje. Internetinė aplikacija yra pasiekiama per HTTP protokolą. Šios sistemos veikimui (pvz., duomenų manipuliavimui su duomenų baze) yra reikalingas Voty API, kuris pasiekiamas per aplikacijų programavimo sąsają. Pats Voty API vykdo duomenų mainus su duomenų baze - tam naudojama TCP/IP sąsaja.
 
-![Sistemos Voty diegimo diagrama]([link-to-image](https://imgur.com/a/uvd6BGJ)https://imgur.com/a/uvd6BGJ)
+![image](https://github.com/Rimtuolis/Votiev1/assets/117346901/08cde845-8818-476c-ac47-17e8fa22d551)
+
